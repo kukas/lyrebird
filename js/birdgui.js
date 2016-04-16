@@ -24,29 +24,44 @@ var BirdGui = function (game, x, y, bird) {
 
     var slider = new Slider(game, this, 30, 10);
     slider.onChange.add(function (target, value) {
-        bird.chirpLength = value * 1000;
+        bird.chirpLength = ((0.05 + value)*0.7) * 1000;
     });
     var slider = new Slider(game, this, 80, 10);
     slider.onChange.add(function (target, value) {
-        bird.chirpDelay = value * 1000;
+        bird.chirpDelay = (0.2 + value) * 400;
     });
+
+    
     var slider = new Slider(game, this, 130, 10);
     slider.onChange.add(function (target, value) {
-        bird.chirpFreqRamp = 500 - value * 1000;
+        bird.chirpFreqRamp = value - 0.2;
     });
 
+    
+    var slider = new Slider(game, this, 180, 10);
+    slider.onChange.add(function (target, value) {
+        bird.sawtoothGain.gain.value = value*0.3;
+    });
+    
+    var slider = new Slider(game, this, 230, 10);
+    slider.onChange.add(function (target, value) {
+        bird.squareGain.gain.value = value*0.3;
+    });
 
+    var slider = new Slider(game, this, 280, 10);
+    slider.onChange.add(function (target, value) {
+        bird.triangleGain.gain.value = value*0.3;
+    });
 
-    // this.bg = new Phaser.Graphics(game, x, y);
-    // this.bg.beginFill(0x000000, 0.7);
-    // this.bg.drawRect(0, 0, this._width, this._height);
-    // this.bg.endFill();
+    var slider = new Slider(game, this, 330, 10);
+    slider.onChange.add(function (target, value) {
+        bird.chirpFreqRange = 0.5+value*0.5;
+    });
 
-    // this.add(this.bg);
-
-    // this.bg.inputEnabled = true;
-    // this.bg.events.onInputDown.add(this.mouseDown, this);
-    // this.bg.events.onInputUp.add(this.mouseUp, this);
+    var slider = new Slider(game, this, 480, 10);
+    slider.onChange.add(function (target, value) {
+        bird.chirpCut = value*0.9+0.1;
+    });
 }
 
 BirdGui.prototype = Object.create(Phaser.Group.prototype);
@@ -116,5 +131,6 @@ Slider.prototype.mouseDown = function (target, pointer) {
 Slider.prototype.mouseUp = function (target, pointer) {
     this.pointer = null;
     this.onUp.dispatch();
+    console.log(this.value);
     // this.fg.visible = false;
 }

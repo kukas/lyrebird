@@ -21,6 +21,7 @@ var Door = function (game) {
     this.circle.scale.set(0.5, 0.5);
 
     this.bg.inputEnabled = true;
+    this.bg.input.useHandCursor = true;
     this.bg.events.onInputDown.add(this.mouseDown, this);
     this.bg.events.onInputUp.add(this.mouseUp, this);
 
@@ -31,19 +32,30 @@ var Door = function (game) {
     this.knock.addMarker('2', 0.53, 0.2);
     this.knock.addMarker('3', 1.04, 0.2);
     this.knock.addMarker('4', 1.67, 0.2);
+
+    this.last = 0;
 }
 
 Door.prototype = Object.create(Phaser.Group.prototype);
 Door.prototype.constructor = Door;
 
 Door.prototype.mouseUp = function () {
-    this.circle.scale.set(0.5, 0.5);
+    if(this.circleTween)
+        this.circleTween.stop();
+    this.circleTween = game.add.tween(this.circle.scale).to( { x:0.5, y:0.5 }, 150, Phaser.Easing.Quadratic.Out, true)
+    // this.circle.scale.set(0.5, 0.5);
+    var last = Date.now();
+    if(last - this.last < 750){
+        console.log(last-this.last);
+    }
+    this.last = last;
 }
 
 Door.prototype.mouseDown = function () {
+    if(this.circleTween)
+        this.circleTween.stop();
     this.circle.scale.set(0.6, 0.6);
 
-    console.log(utils.randomInt(1,4));
     this.knock.play("" + utils.randomInt(1,4));
 }
 

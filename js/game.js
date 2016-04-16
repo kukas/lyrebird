@@ -3,7 +3,8 @@ var PhaserGame = function () {
 
 PhaserGame.prototype = {
     preload: function () {
-        game.load.audio('knock', 'sounds/knock.wav');
+        game.load.audio('move', 'sounds/move.wav');
+        game.load.audio('knock', 'sounds/knock2.wav');
         game.load.audio('impulse_response', 'sounds/koli_summer_site1_1way_mono.wav');
     },
     create: function () {
@@ -43,6 +44,8 @@ PhaserGame.prototype = {
     update: function () {
         game.fpsCounter.text = game.time.fps+" "+game.time.fpsMin+" "+game.time.fpsMax;
         // this.bird.update();
+        this.bird.update();
+        // console.log(this.bird.bins);
     },
 
     render: function () {

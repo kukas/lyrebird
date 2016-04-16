@@ -25,6 +25,10 @@ utils = {
 			return 0;
 	},
 
+	clamp: function (x, min, max) {
+		return Math.min(Math.max(x, min), max);
+	},
+
 	randomElement: function (a) {
 		return a[Math.floor(Math.random() * a.length)];
 	},

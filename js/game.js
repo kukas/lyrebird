@@ -3,7 +3,8 @@ var PhaserGame = function () {
 
 PhaserGame.prototype = {
     preload: function () {
-
+        game.load.audio('knock', 'sounds/knock.wav');
+        game.load.audio('impulse_response', 'sounds/koli_summer_site1_1way_mono.wav');
     },
     create: function () {
         // centrování canvasu
@@ -24,6 +25,15 @@ PhaserGame.prototype = {
         // door.position.set(320, 240);
         gui.add(door);
 
+        if(!game.sound.usingWebAudio){
+            alert("Your browser doesn't support WebAudio. :(");
+        }
+
+        var ctx = this.game.sound.context;
+        this.bird = new Bird(ctx, ctx.destination);
+
+        var birdGui = new BirdGui(this.game, 0, this.game.height/2, this.bird);
+
         this.datgui = new dat.GUI();
         // dat.GUI.toggleHide();
         // $(this.datgui.domElement).attr("hidden", true);
@@ -32,6 +42,7 @@ PhaserGame.prototype = {
 
     update: function () {
         game.fpsCounter.text = game.time.fps+" "+game.time.fpsMin+" "+game.time.fpsMax;
+        // this.bird.update();
     },
 
     render: function () {
@@ -43,6 +54,7 @@ PhaserGame.prototype = {
 var game;
 $(document).ready(function(){
     game = new Phaser.Game(800, 480, Phaser.AUTO, document.body);
+
     // game.state.add("Loading", loading);
     // game.state.add("Preload", preloadA);
     game.state.add("PhaserGame", PhaserGame);

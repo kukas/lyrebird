@@ -8,7 +8,7 @@ var Slider = function (game, group, x, y, _width, _height) {
     this._height = _height === undefined ? 100 : _height;
 
     this.bg = new Phaser.Graphics(game, 0, 0);
-    this.bg.beginFill(0x444444, 1);
+    this.bg.beginFill(0x000000, 1);
     this.bg.drawRect(-this._width/2, 0, this._width, this._height);
     this.bg.drawCircle(0, 0, this._width);
     this.bg.drawCircle(0, this._height, this._width);
@@ -22,7 +22,7 @@ var Slider = function (game, group, x, y, _width, _height) {
 
     this.fg = new Phaser.Graphics(game, 0, 0);
     this.fgBaseScale = new Phaser.Point(0.8, 0.8);
-    this.fg.beginFill(0xdddddd, 1);
+    this.fg.beginFill(0xFFFFFF, 1);
     this.fg.drawCircle(0, 0, this._width);
     this.fg.endFill();
     this.fg.scale.copyFrom(this.fgBaseScale);
@@ -72,16 +72,11 @@ Slider.prototype.updateYPos = function () {
         y = utils.clamp(y, 0, this._height);
         dy = Math.abs(this.fg.position.y - y);
         
-        // if(dy > 5){
-        //     this.fgPosTween = game.add.tween(this.fg).to( { y:y }, 50, Phaser.Easing.Quadratic.Out, true);
-        // }
-        // else {
-            this.fg.position.set(0, y);
-        // }
-
         this.value = 1 - y / this._height;
         this.onChange.dispatch(this, this.value);
     }
+
+    this.fg.position.set(0, (1 - this.value) * this._height);
 
     this.moveSfx.volume = utils.clamp((this.moveSfx.volume + Math.sqrt(dy))/2, 0, 1);
 }

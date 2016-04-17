@@ -91,8 +91,10 @@ function Bird(ctx, destination) {
 	this.chirpCount = 0;
 	this.chirping = false;
 	this.stopChirp = false;
+	this.singingSong = false;
 
 	this.useScale = true;
+	this.song = [];
 }
 
 Bird.prototype.startChirping = function () {
@@ -103,6 +105,15 @@ Bird.prototype.startChirping = function () {
 		this.chirping = false;
 		this.stopChirp = false;
 		return;
+	}
+
+	if(this.singingSong){
+		this.setFreq(this.song[this.songPointer]);
+		this.songPointer++;
+		if(this.songPointer == this.song.length){
+			this.singingSong = false;
+			this.stopSing();
+		}
 	}
 
 	chirpCut = 1;
@@ -126,28 +137,34 @@ Bird.prototype.startChirping = function () {
 	this.eachOsc(function (osc) {
 		var prop = "frequency";
 		var scaleRate = 1;
+		// console.log(osc)
+		// audiobuffer
 		if(osc instanceof AudioBufferSourceNode){
 			prop = "playbackRate";
-			scaleRate = 1/1500;
-			// osc.playbackRate.cancelScheduledValues(t);
-			// osc.playbackRate.setValueAtTime(1, t);
-			// osc.playbackRate.linearRampToValueAtTime(2, t+0.5);
-			// return;
+			scaleRate = 1/1000;
+			var startRate = this.frequency * scaleRate;
+			var endRate = startRate + (-this.chirpFreqRamp + 0.2);
+			osc.playbackRate.cancelScheduledValues(t);
+			osc.playbackRate.setValueAtTime(startRate, t);
+			var dur = this.chirpLength*chirpCut*(this.chirpFreqRange-0.2)/1000;
+			osc.playbackRate.linearRampToValueAtTime(endRate, t + dur);
 		}
-		osc[prop].cancelScheduledValues(t);
-		osc[prop].setValueAtTime(this.frequency, t);
-		// osc.frequency.linearRampToValueAtTime(this.frequency + this.chirpFreqRamp, t+this.chirpLength/1000);
-		var size = 512;
-		var values = new Float32Array(size);
-		var range = this.chirpFreqRange * chirpCut;
-		var scale = this.chirpFreqRamp;
-		var freq = this.frequency * scaleRate;
-		// var freq = this.frequency + Math.random()*100;
-		for (var i = 0; i < size; i++) {
-			var x = (i/size*range*2 - 1);
-			values[i] = freq + Math.sqrt(1 - x*x) * scale * freq;
+		else { // oscillator
+			osc[prop].cancelScheduledValues(t);
+			osc[prop].setValueAtTime(this.frequency, t);
+			// osc.frequency.linearRampToValueAtTime(this.frequency + this.chirpFreqRamp, t+this.chirpLength/1000);
+			var size = 512;
+			var values = new Float32Array(size);
+			var range = this.chirpFreqRange * chirpCut;
+			var scale = this.chirpFreqRamp;
+			var freq = this.frequency * scaleRate;
+			// var freq = this.frequency + Math.random()*100;
+			for (var i = 0; i < size; i++) {
+				var x = (i/size*range*2 - 1);
+				values[i] = freq + Math.sqrt(1 - x*x) * scale * freq;
+			}
+			osc[prop].setValueCurveAtTime(values, t, this.chirpLength*chirpCut/1000)
 		}
-		osc[prop].setValueCurveAtTime(values, t, this.chirpLength*chirpCut/1000)
 	});
 
 	this.chirpCount++;
@@ -224,27 +241,56 @@ Bird.prototype.setScale = function (value) {
 
 Bird.prototype.randomize = function (values) {
 	values = values === undefined ? {} : values;
-	this.setChirpLength(values.chirpLength === undefined ? Math.random() : utils.random(values.chirpLength.min, values.chirpLength.max));
-	this.setChirpDelay(values.chirpDelay === undefined ? Math.random() : utils.random(values.chirpDelay.min, values.chirpDelay.max));
-	this.setChirpFreqRamp(values.chirpFreqRamp === undefined ? Math.random() : utils.random(values.chirpFreqRamp.min, values.chirpFreqRamp.max));
-	this.setChirpFreqRange(values.chirpFreqRange === undefined ? Math.random() : utils.random(values.chirpFreqRange.min, values.chirpFreqRange.max));
-	var cut = Math.random() > 0.7 ? 0 : Math.random();
-	this.setChirpCut(values.chirpCut === undefined ? cut : utils.random(values.chirpCut.min, values.chirpCut.max));
+	this.setChirpLength(values.chirpLength = values.chirpLength === undefined ? Math.random() : utils.random(values.chirpLength.min, values.chirpLength.max));
+	this.setChirpDelay(values.chirpDelay = values.chirpDelay === undefined ? Math.random() : utils.random(values.chirpDelay.min, values.chirpDelay.max));
+	this.setChirpFreqRamp(values.chirpFreqRamp = values.chirpFreqRamp === undefined ? Math.random() : utils.random(values.chirpFreqRamp.min, values.chirpFreqRamp.max));
+	this.setChirpFreqRange(values.chirpFreqRange = values.chirpFreqRange === undefined ? Math.random() : utils.random(values.chirpFreqRange.min, values.chirpFreqRange.max));
+	var cut = Math.random() > 0.7 ? 1 : Math.random();
+	this.setChirpCut(values.chirpCut = values.chirpCut === undefined ? cut : utils.random(values.chirpCut.min, values.chirpCut.max));
 
 	if(values.color === undefined){
+		values.color = {};
 		if(Math.random() > 0.5){
 			this.setColor(1, 0, 0);
+			values.color.sq = 1;
+			values.color.sw = 1;
+			values.color.tr = 1;
 		}
 		else {
 			var c = Math.random();
 			this.setColor(0, 1-c, c);
+			values.color.sq = 0;
+			values.color.sw = 1-c;
+			values.color.tr = c;
 		}
 	}
 	else {
 		this.setColor(
-				utils.random(values.color.sq.min, values.color.sq.max),
-				utils.random(values.color.sw.min, values.color.sw.max),
-				utils.random(values.color.tr.min, values.color.tr.max)
+				values.color.sq = utils.random(values.color.sq.min, values.color.sq.max),
+				values.color.sw = utils.random(values.color.sw.min, values.color.sw.max),
+				values.color.tr = utils.random(values.color.tr.min, values.color.tr.max)
 			);
 	}
+
+	this.song = [];
+	var chirpTotalLength = this.chirpDelay + this.chirpLength*this.chirpCut;
+	var songLength = utils.random(2000, 3000) - this.chirpLength;
+	var songChirps = Math.round(songLength/chirpTotalLength);
+	var repeating = Math.random();
+	// console.log(repeating);
+	for (var i = 0; i < songChirps; i++) {
+		if(Math.random() > repeating || i == 0)
+			this.song.push(Math.random());
+		else
+			this.song.push(this.song[i-1]);
+	}
+
+	return values;
+}
+
+Bird.prototype.singSong = function () {
+	// console.log(this.song);
+	this.songPointer = 0;
+	this.singingSong = true;
+	this.sing();
 }

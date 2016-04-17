@@ -11,11 +11,11 @@ PhaserGame.prototype = {
     create: function () {
         // centrování canvasu
         $(game.canvas).center();
-		// Zapnutí progressu
-        game.stage.backgroundColor = '#dddddd';
+        game.stage.backgroundColor = '#ffffff';
         game.time.advancedTiming = true;
 
         var debugGui = game.add.group(game.world, "debugGui");
+        debugGui.visible = false;
         game.fpsCounter = game.make.text(600, 0, "fps: ", {
             font: "normal 32px monacoregular"
         });
@@ -24,7 +24,6 @@ PhaserGame.prototype = {
         var gui = game.add.group(game.world, "gui");
 
         var door = new Door(this.game, 0, 0);
-        // door.position.set(320, 240);
         gui.add(door);
 
         if(!game.sound.usingWebAudio){
@@ -33,21 +32,25 @@ PhaserGame.prototype = {
 
         var ctx = this.game.sound.context;
         this.bird = new Bird(ctx, ctx.destination);
-        this.bird.randomize();
+        var settings = this.bird.randomize();
+        this.bird.singSong();
 
         var birdGui = new BirdGui(this.game, 0, this.game.height/2, this.bird);
+        birdGui.setSliders(settings);
+    },
 
-        this.datgui = new dat.GUI();
-        // dat.GUI.toggleHide();
-        // $(this.datgui.domElement).attr("hidden", true);
-        // this.datgui.add(game.march.psychology, "baseSpeed");
+    newBird: function () {
+        var ctx = this.game.sound.context;
+        this.bird = new Bird(ctx, ctx.destination);
+        this.bird.randomize();
+        this.bird.singSong();
+
+        var bird = new Bird();
     },
 
     update: function () {
         game.fpsCounter.text = game.time.fps+" "+game.time.fpsMin+" "+game.time.fpsMax;
-        // this.bird.update();
         this.bird.update();
-        // console.log(this.bird.bins);
     },
 
     render: function () {

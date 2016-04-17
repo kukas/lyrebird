@@ -9,7 +9,7 @@ var Slider2D = function (game, group, x, y, _width, _height) {
 
     var size = 40;
     this.bg = new Phaser.Graphics(game, 0, 0);
-    this.bg.beginFill(0x444444, 1);
+    this.bg.beginFill(0x000000, 1);
     this.bg.drawRect(-size/2, 0, this._width + size, this._height);
     this.bg.drawRect(0, -size/2, this._width, this._height + size);
     this.bg.drawCircle(0, 0, size);
@@ -26,7 +26,7 @@ var Slider2D = function (game, group, x, y, _width, _height) {
 
     this.fg = new Phaser.Graphics(game, 0, 0);
     this.fgBaseScale = new Phaser.Point(0.8, 0.8);
-    this.fg.beginFill(0xdddddd, 1);
+    this.fg.beginFill(0xffffff, 1);
     this.fg.drawCircle(0, 0, 40);
     this.fg.endFill();
     this.fg.scale.copyFrom(this.fgBaseScale);
@@ -80,12 +80,11 @@ Slider2D.prototype.updateXYPos = function () {
         dx = Math.abs(this.fg.position.x - x);
         dy = Math.abs(this.fg.position.y - y);
         
-        this.fg.position.set(x, y);
-
         this.value.set(x / this._width, 1 - y / this._height);
-        console.log(this.value);
         this.onChange.dispatch(this, this.value);
     }
+
+    this.fg.position.set(this.value.x * this._width, (1 -this.value.y) * this._height);
 
     this.moveSfx.volume = utils.clamp((this.moveSfx.volume + Math.sqrt(dx*dx+dy*dy))/2, 0, 1);
 }

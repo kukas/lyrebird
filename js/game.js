@@ -3,6 +3,7 @@ var PhaserGame = function () {
 
 PhaserGame.prototype = {
     preload: function () {
+        game.load.audio('raven', 'sounds/toucan.wav');
         game.load.audio('move', 'sounds/move.wav');
         game.load.audio('knock', 'sounds/knock2.wav');
         game.load.audio('impulse_response', 'sounds/koli_summer_site1_1way_mono.wav');
@@ -32,6 +33,7 @@ PhaserGame.prototype = {
 
         var ctx = this.game.sound.context;
         this.bird = new Bird(ctx, ctx.destination);
+        this.bird.randomize();
 
         var birdGui = new BirdGui(this.game, 0, this.game.height/2, this.bird);
 

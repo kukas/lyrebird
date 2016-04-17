@@ -3,6 +3,7 @@ var PhaserGame = function () {
 
 PhaserGame.prototype = {
     preload: function () {
+        game.load.image('tick', 'img/tick.png');
         game.load.audio('raven', 'sounds/toucan.wav');
         game.load.audio('move', 'sounds/move.wav');
         game.load.audio('knock', 'sounds/knock2.wav');
@@ -32,11 +33,32 @@ PhaserGame.prototype = {
 
         var ctx = this.game.sound.context;
         this.bird = new Bird(ctx, ctx.destination);
-        var settings = this.bird.randomize();
-        this.bird.singSong();
+        this.otherBird = new Bird(ctx, ctx.destination);
+        this.otherBird.randomize();
+        this.otherBird.onDoneSinging.add(function () {
+            door.dontKnock = false;
+            this.otherBird.listen = true;
+        }, this);
+        door.onKnock.add(function () {
+            door.dontKnock = true;
+            this.otherBird.singSong();
+        }, this);
 
-        var birdGui = new BirdGui(this.game, 0, this.game.height/2, this.bird);
-        birdGui.setSliders(settings);
+        this.bird.onDoneSinging.add(function () {
+            if(this.otherBird.listen){
+                var test = this.otherBird.compare(this.bird);
+                console.log(test);
+
+                this.birdGui.tickCircle.visible = test.circle;
+                this.birdGui.tickCroak.visible = test.croak;
+                this.birdGui.tickSquare.visible = test.square;
+                this.birdGui.tickCut.visible = test.cut;
+            }
+        }, this);
+
+        var settings = this.bird.randomize();
+        this.birdGui = new BirdGui(this.game, 0, this.game.height/2, this.bird);
+        this.birdGui.setSliders(settings);
     },
 
     newBird: function () {
@@ -49,8 +71,8 @@ PhaserGame.prototype = {
     },
 
     update: function () {
-        game.fpsCounter.text = game.time.fps+" "+game.time.fpsMin+" "+game.time.fpsMax;
         this.bird.update();
+        game.fpsCounter.text = game.time.fps+" "+game.time.fpsMin+" "+game.time.fpsMax;
     },
 
     render: function () {

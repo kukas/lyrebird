@@ -62,6 +62,19 @@ var BirdGui = function (game, x, y, bird) {
             bird.setColor(0,0.2,0.8);
     });
 
+    this.tickCroak = game.make.sprite(670+35 - 11, 15, 'tick');
+    this.tickCroak.visible = false;
+    this.add(this.tickCroak);
+    this.tickCircle = game.make.sprite(510+50 - 11, 15, 'tick');
+    this.tickCircle.visible = false;
+    this.add(this.tickCircle);
+    this.tickSquare = game.make.sprite(130-55 + 50 - 11, 15, 'tick');
+    this.tickSquare.visible = false;
+    this.add(this.tickSquare);
+    this.tickCut = game.make.sprite(240+40 - 11, 15, 'tick');
+    this.tickCut.visible = false;
+    this.add(this.tickCut);
+
 
 
 

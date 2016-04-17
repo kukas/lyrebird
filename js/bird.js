@@ -87,14 +87,20 @@ function Bird(ctx, destination) {
 
 	this.timeout = null;
 	this.singTime = 0;
+	this.stopSingTime = 0;
 	this.chirpTime = 0;
 	this.chirpCount = 0;
 	this.chirping = false;
 	this.stopChirp = false;
 	this.singingSong = false;
+	this.userSingingSongEventDispatched = true;
+
+	this.onDoneSinging = new Phaser.Signal();
 
 	this.useScale = true;
 	this.song = [];
+
+	this.listen = false;
 }
 
 Bird.prototype.startChirping = function () {
@@ -111,6 +117,7 @@ Bird.prototype.startChirping = function () {
 		this.setFreq(this.song[this.songPointer]);
 		this.songPointer++;
 		if(this.songPointer == this.song.length){
+			this.onDoneSinging.dispatch();
 			this.singingSong = false;
 			this.stopSing();
 		}
@@ -171,7 +178,11 @@ Bird.prototype.startChirping = function () {
 }
 
 Bird.prototype.update = function () {
-	// this.analyser.getFloatFrequencyData(this.bins);
+	var dt = Date.now() - this.stopSingTime;
+	if(!this.userSingingSongEventDispatched && dt > 1000){
+		this.userSingingSongEventDispatched = true;
+		this.onDoneSinging.dispatch();
+	}
 }
 
 Bird.prototype.eachOsc = function (callback) {
@@ -186,6 +197,7 @@ Bird.prototype.sing = function () {
 	this.chirpCount = 0;
 	this.oscGain.gain.value = 1;
 	this.singTime = Date.now();
+	this.userSingingSongEventDispatched = true;
 	if(!this.chirping){
 		this.startChirping();
 	}
@@ -193,6 +205,8 @@ Bird.prototype.sing = function () {
 
 Bird.prototype.stopSing = function () {
 	// this.oscGain.gain.value = 0;
+	this.stopSingTime = Date.now();
+	this.userSingingSongEventDispatched = false;
 	if(this.chirping)
 		this.stopChirp = true;
 }
@@ -257,7 +271,7 @@ Bird.prototype.randomize = function (values) {
 			values.color.tr = 1;
 		}
 		else {
-			var c = Math.random();
+			var c = 0.8;
 			this.setColor(0, 1-c, c);
 			values.color.sq = 0;
 			values.color.sw = 1-c;
@@ -293,4 +307,24 @@ Bird.prototype.singSong = function () {
 	this.songPointer = 0;
 	this.singingSong = true;
 	this.sing();
+}
+
+Bird.prototype.compare = function (bird) {
+	var deltaDelay = Math.abs(this.chirpDelay - bird.chirpDelay);
+	var deltaLength = Math.abs(this.chirpLength - bird.chirpLength);
+	var deltaRange = Math.abs(this.chirpFreqRange - bird.chirpFreqRange);
+	var deltaRamp = Math.abs(this.chirpFreqRamp - bird.chirpFreqRamp);
+	var deltaCut = Math.abs(this.chirpCut - bird.chirpCut);
+	console.log("deltaDelay", deltaDelay);
+	console.log("deltaLength", deltaLength);
+	console.log("deltaRange", deltaRange);
+	console.log("deltaRamp", deltaRamp);
+	console.log("deltaCut", deltaCut);
+
+	return {
+		circle: deltaDelay+deltaLength < 150,
+		croak: this.squareGain.gain.value == bird.squareGain.gain.value,
+		square: deltaRange < 0.15 && deltaRamp < 0.2,
+		cut: deltaCut < 0.15
+	};
 }

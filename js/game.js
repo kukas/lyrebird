@@ -433,6 +433,7 @@ PhaserGame.prototype = {
                     croak: 1
                 },
                 // song: [0.4, 0.4, 0.4, 0.4],
+                song: [0.4],
                 visibility: {
                     sliderCircle: true,
                     slider2D: false,

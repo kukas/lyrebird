@@ -79,13 +79,12 @@ SliderCircle.prototype.update = function () {
 }
 
 SliderCircle.prototype.updateXYPos = function () {
-    var dy = 0;
+    var dy = 0, dx = 0;
     if(this.pointer){
         var x = this.toLocal(this.pointer.position).x;
         var y = this.toLocal(this.pointer.position).y;
         var angle = Math.atan(y/x);
         if(x < 0){
-            // angle *= -1;
             angle += Math.PI;
         }
         var r = this._width/2;
@@ -97,29 +96,41 @@ SliderCircle.prototype.updateXYPos = function () {
         dy = Math.abs(this.fg.position.y - y);
 
         this.fg.position.set(x, y);
-        this.fg2.position.set(Math.round(x), Math.round(-y));
-        
-        var yy = 4 * (x*x + y*y) / this._width / this._width;
-        // var xx = (angle + Math.PI/2)/Math.PI/2;
-        var rr = Math.sqrt(x*x + y*y);
-        var xx = Math.acos(x/rr)/Math.PI;
 
-        this.value.set(xx, yy);
+        var xn = Math.abs(x / this._width * 2);
+        var yn = Math.abs(- y / this._height * 2);
+        var rt = xn > yn ? (1+yn*yn/xn/xn) : (1+xn*xn/yn/yn);
+        rt = Math.sqrt(rt);
+
+        var xx = xn * rt * Math.sign(x);
+        var yy = yn * rt * Math.sign(y);
+
+        this.fg.position.set(x, y);
+
+        this.value.set((1 + xx) * 0.5, (1 + yy) * 0.5);
+        // this.setValue(this.value.x, this.value.y);
 
         this.onChange.dispatch(this, this.value);
     }
 
-    this.moveSfx.volume = utils.clamp((this.moveSfx.volume + Math.sqrt(dy ))/2, 0, 1);
+    this.moveSfx.volume = utils.clamp((this.moveSfx.volume + Math.sqrt(dx*dx + dy*dy))/2, 0, 1);
 }
 
 SliderCircle.prototype.setValue = function (x, y) {
     this.value.set(x, y);
 
-    var rrr = Math.sqrt(this.value.y)/2*this._width;
-    var xxx = Math.cos(this.value.x * Math.PI)*rrr;
-    var yyy = Math.sqrt(rrr*rrr - xxx*xxx);
+    x = (x - 0.5) * 2;
+    y = (y - 0.5) * 2;
 
-    this.fg.position.set(xxx, yyy);
+    var xn = Math.abs(x);
+    var yn = Math.abs(y);
+    var rt = xn > yn ? (1+yn*yn/xn/xn) : (1+xn*xn/yn/yn);
+    rt = Math.sqrt(rt);
+
+    var xx = xn / rt * Math.sign(x);
+    var yy = yn / rt * Math.sign(y);
+
+    this.fg.position.set(xx*this._width/2, yy*this._height/2);
 }
 
 SliderCircle.prototype.mouseDown = function (target, pointer) {

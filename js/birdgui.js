@@ -48,12 +48,6 @@ var BirdGui = function (game, x, y, bird) {
         bird.setChirpCut(value);
     });
 
-    // var sliderSw = new Slider(game, this, 630, 50);
-    // sliderSw.onChange.add(function (target, value) {
-    //     if(sliderSq.value > 0.5)
-    //         bird.setColor(0, 1 - value, value);
-    // });
-
     this.sliderSq = new SliderToggle(game, this, 670+35, 100);
     this.sliderSq.onChange.add(function (target, value) {
         if(value > 0.5)
@@ -62,37 +56,47 @@ var BirdGui = function (game, x, y, bird) {
             bird.setColor(0,0.2,0.8);
     });
 
+    this.sliderCircle.onUp.add(function (target) {
+        console.log(this.sliderCircle.value);
+    }, this);
+    this.slider2D.onUp.add(function (target) {
+        console.log(this.slider2D.value);
+    }, this);
+    this.sliderChirpCut.onUp.add(function (target) {
+        console.log(this.sliderChirpCut.value);
+    }, this);
+    this.sliderSq.onUp.add(function (target) {
+        console.log(this.sliderSq.value);
+    }, this);
+
     this.tickCroak = game.make.sprite(670+35 - 11, 15, 'tick');
-    this.tickCroak.visible = false;
+    this.tickCroak.alpha = 0;
     this.add(this.tickCroak);
     this.tickCircle = game.make.sprite(510+50 - 11, 15, 'tick');
-    this.tickCircle.visible = false;
+    this.tickCircle.alpha = 0;
     this.add(this.tickCircle);
     this.tickSquare = game.make.sprite(130-55 + 50 - 11, 15, 'tick');
-    this.tickSquare.visible = false;
+    this.tickSquare.alpha = 0;
     this.add(this.tickSquare);
     this.tickCut = game.make.sprite(240+40 - 11, 15, 'tick');
-    this.tickCut.visible = false;
+    this.tickCut.alpha = 0;
     this.add(this.tickCut);
-
-
-
-
-
-    // this.sliderScale = new SliderToggle(game, this, 700, 50);
-    // sliderScale.onChange.add(function (target, value) {
-    //     bird.setScale(value);
-    // });
 }
 
 BirdGui.prototype = Object.create(Phaser.Group.prototype);
 BirdGui.prototype.constructor = BirdGui;
 
+BirdGui.prototype.tickHide = function () {
+    this.tickCroak.alpha = 0;
+    this.tickCircle.alpha = 0;
+    this.tickSquare.alpha = 0;
+    this.tickCut.alpha = 0;
+}
 
 BirdGui.prototype.setSliders = function (values) {
     console.log(values);
     this.slider2D.value.set(values.chirpFreqRamp, values.chirpFreqRange);
     this.sliderCircle.setValue(values.chirpLength, values.chirpDelay);
     this.sliderChirpCut.value = values.chirpCut;
-    this.sliderSq.setValue(values.color.sq);
+    this.sliderSq.setValue(values.croak);
 }

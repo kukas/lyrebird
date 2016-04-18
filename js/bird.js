@@ -96,11 +96,19 @@ function Bird(ctx, destination) {
 	this.userSingingSongEventDispatched = true;
 
 	this.onDoneSinging = new Phaser.Signal();
+	this.onStartSinging = new Phaser.Signal();
 
 	this.useScale = true;
 	this.song = [];
+	this.userSong = [];
 
 	this.listen = false;
+
+	this.deltaMaxDelay = 75;
+	this.deltaMaxLength = 75;
+	this.deltaMaxRange = 0.15
+	this.deltaMaxRamp = 0.2;
+	this.deltaMaxCut = 0.15;
 }
 
 Bird.prototype.startChirping = function () {
@@ -108,17 +116,23 @@ Bird.prototype.startChirping = function () {
 
 	this.chirping = true;
 	if(this.stopChirp){
+		if(this.singingSong){
+			this.onDoneSinging.dispatch();
+			this.singingSong = false;
+		}
 		this.chirping = false;
 		this.stopChirp = false;
 		return;
 	}
 
+	var notToday = false;
 	if(this.singingSong){
-		this.setFreq(this.song[this.songPointer]);
+		if(this.song[this.songPointer] === false)
+			notToday = true;
+		else 
+			this.setFreq(this.song[this.songPointer]);
 		this.songPointer++;
 		if(this.songPointer == this.song.length){
-			this.onDoneSinging.dispatch();
-			this.singingSong = false;
 			this.stopSing();
 		}
 	}
@@ -127,19 +141,27 @@ Bird.prototype.startChirping = function () {
 	if(this.chirpCount >= this.chirpCutCount)
 		chirpCut = this.chirpCut;
 
+	// this.userSong.push(this.frequency);
+
 	chirpTotalLength = this.chirpLength*chirpCut + this.chirpDelay;
 	this.timeout = setTimeout(function () {
 		_this.startChirping();
 	}, chirpTotalLength);
 
 	var t = this.ctx.currentTime;
-	this.chirperGain.gain.cancelScheduledValues(t);
-	this.chirperGain.gain.setValueAtTime(0, t);
 	var attack = t+this.attack/1000;
-	this.chirperGain.gain.linearRampToValueAtTime(1, attack);
 	var release = t+this.chirpLength/1000 * chirpCut;
 	var releaseDur = 0.02;
-	this.chirperGain.gain.setTargetAtTime(0, Math.max(attack + releaseDur, release), releaseDur);
+	this.chirperGain.gain.cancelScheduledValues(t);
+	this.chirperGain.gain.setValueAtTime(0, t);
+
+	if(!notToday){
+		this.chirperGain.gain.linearRampToValueAtTime(1, attack);
+		this.chirperGain.gain.setTargetAtTime(0, Math.max(attack + releaseDur, release), releaseDur);
+	}
+	else {
+		this.chirpCount = -1;
+	}
 
 	this.eachOsc(function (osc) {
 		var prop = "frequency";
@@ -179,10 +201,15 @@ Bird.prototype.startChirping = function () {
 
 Bird.prototype.update = function () {
 	var dt = Date.now() - this.stopSingTime;
-	if(!this.userSingingSongEventDispatched && dt > 1000){
+	if(!this.userSingingSongEventDispatched && dt > 300){
 		this.userSingingSongEventDispatched = true;
-		this.onDoneSinging.dispatch();
+		this.onDoneSinging.dispatch(this.chirpCount);
 	}
+	// if(!this.userSingingSongEventDispatched && this.userSong.length > 0){
+	// 	if(this.userSong[this.userSong.length-1] !== false){
+	// 		this.userSong.push(false);
+	// 	}
+	// }
 }
 
 Bird.prototype.eachOsc = function (callback) {
@@ -194,6 +221,7 @@ Bird.prototype.eachOsc = function (callback) {
 }
 
 Bird.prototype.sing = function () {
+	this.onStartSinging.dispatch();
 	this.chirpCount = 0;
 	this.oscGain.gain.value = 1;
 	this.singTime = Date.now();
@@ -212,8 +240,13 @@ Bird.prototype.stopSing = function () {
 }
 
 Bird.prototype.setFreq = function (freq) {
-	var base = 880;
+	var base = 523.25;
 	// pentatonic = [1, 1/2, 1/3, 1/4, 1/5, 1/6];
+	mult = 1;
+	if(freq > 1){
+		mult = 2;
+		freq -= 1;
+	}
 	pentatonic = [4/3, 3/2, 16/9, 2, 2*32/27, 2*4/3, 2*3/2, 2*16/9];
 	var f = pentatonic[Math.floor((pentatonic.length-1)*freq)]*base;
 
@@ -221,7 +254,7 @@ Bird.prototype.setFreq = function (freq) {
 		f = base + freq*1000;
 	}
 
-	this.frequency = f;
+	this.frequency = f*mult;
 }
 
 Bird.prototype.setChirpLength = function (value) {
@@ -253,43 +286,128 @@ Bird.prototype.setScale = function (value) {
 	this.useScale = value > 0.5;
 }
 
-Bird.prototype.randomize = function (values) {
+Bird.prototype.setSettings = function (values) {
 	values = values === undefined ? {} : values;
-	this.setChirpLength(values.chirpLength = values.chirpLength === undefined ? Math.random() : utils.random(values.chirpLength.min, values.chirpLength.max));
-	this.setChirpDelay(values.chirpDelay = values.chirpDelay === undefined ? Math.random() : utils.random(values.chirpDelay.min, values.chirpDelay.max));
-	this.setChirpFreqRamp(values.chirpFreqRamp = values.chirpFreqRamp === undefined ? Math.random() : utils.random(values.chirpFreqRamp.min, values.chirpFreqRamp.max));
-	this.setChirpFreqRange(values.chirpFreqRange = values.chirpFreqRange === undefined ? Math.random() : utils.random(values.chirpFreqRange.min, values.chirpFreqRange.max));
-	var cut = Math.random() > 0.7 ? 1 : Math.random();
-	this.setChirpCut(values.chirpCut = values.chirpCut === undefined ? cut : utils.random(values.chirpCut.min, values.chirpCut.max));
+	if(values.chirpLength !== undefined)
+		this.setChirpLength(values.chirpLength);
+	if(values.chirpDelay !== undefined)
+		this.setChirpDelay(values.chirpDelay);
+	if(values.chirpFreqRamp !== undefined)
+		this.setChirpFreqRamp(values.chirpFreqRamp);
+	if(values.chirpFreqRange !== undefined)
+		this.setChirpFreqRange(values.chirpFreqRange);
+	if(values.chirpCut !== undefined)
+		this.setChirpCut(values.chirpCut);
 
-	if(values.color === undefined){
-		values.color = {};
+	if(values.croak !== undefined){
+		if(values.croak === 1)
+			this.setColor(1, 0, 0);
+		else
+			this.setColor(0, 0.2, 0.8);
+	}
+}
+
+Bird.prototype.shuffle = function (values, otherBird, settings) {
+	values = values === undefined ? {} : values;
+
+	// this.deltaMaxDelay = 75;
+	// this.deltaMaxLength = 75;
+	// this.deltaMaxRange = 0.15
+	// this.deltaMaxRamp = 0.2;
+	// this.deltaMaxCut = 0.15;
+
+	if(values.chirpLength){
+		do
+			this.setChirpLength(settings.chirpLength = Math.random());
+		while(this.compare(otherBird).circle);
+	}
+	if(values.chirpDelay){
+		do
+			this.setChirpDelay(settings.chirpDelay = Math.random());
+		while(this.compare(otherBird).circle);
+	}
+	if(values.chirpFreqRamp){
+		do
+			this.setChirpFreqRamp(settings.chirpFreqRamp = Math.random());
+		while(this.compare(otherBird).square);
+	}
+	if(values.chirpFreqRange){
+		do
+			this.setChirpFreqRange(settings.chirpFreqRange = Math.random());
+		while(this.compare(otherBird).square);
+	}
+	if(values.chirpCut){
+		do
+			this.setChirpCut(settings.chirpCut = Math.random());
+		while(this.compare(otherBird).cut);
+	}
+	if(values.croak == 1){ // nastaví náhodně
 		if(Math.random() > 0.5){
 			this.setColor(1, 0, 0);
-			values.color.sq = 1;
-			values.color.sw = 1;
-			values.color.tr = 1;
+			settings.croak = 1;
 		}
 		else {
 			var c = 0.8;
 			this.setColor(0, 1-c, c);
-			values.color.sq = 0;
-			values.color.sw = 1-c;
-			values.color.tr = c;
+			settings.croak = 0;
+		}
+	}
+	if(values.croak == 2){ // nastaví opak
+		if(settings.croak > 0.5){
+			var c = 0.8;
+			this.setColor(0, 1-c, c);
+			settings.croak = 0;
+		}
+		else {
+			this.setColor(1, 0, 0);
+			settings.croak = 1;
+		}
+	}
+}
+
+Bird.prototype.randomize = function (values) {
+	console.log(values);
+	values = values === undefined ? {} : values;
+	if(values.chirpLength !== false)
+		this.setChirpLength(values.chirpLength = values.chirpLength === undefined ? Math.random() : utils.random(values.chirpLength.min, values.chirpLength.max));
+	if(values.chirpDelay !== false)
+		this.setChirpDelay(values.chirpDelay = values.chirpDelay === undefined ? Math.random() : utils.random(values.chirpDelay.min, values.chirpDelay.max));
+	if(values.chirpFreqRamp !== false)
+		this.setChirpFreqRamp(values.chirpFreqRamp = values.chirpFreqRamp === undefined ? Math.random() : utils.random(values.chirpFreqRamp.min, values.chirpFreqRamp.max));
+	if(values.chirpFreqRange !== false)
+		this.setChirpFreqRange(values.chirpFreqRange = values.chirpFreqRange === undefined ? Math.random() : utils.random(values.chirpFreqRange.min, values.chirpFreqRange.max));
+
+	if(values.chirpCut !== false){
+		var cut = Math.random() > 0.7 ? 1 : Math.random();
+		this.setChirpCut(values.chirpCut = values.chirpCut === undefined ? cut : utils.random(values.chirpCut.min, values.chirpCut.max));
+	}
+
+	if(values.croak === undefined){
+		values.color = {};
+		if(Math.random() > 0.5){
+			this.setColor(1, 0, 0);
+			values.croak = 1;
+		}
+		else {
+			var c = 0.8;
+			this.setColor(0, 1-c, c);
+			values.croak = 0;
 		}
 	}
 	else {
-		this.setColor(
-				values.color.sq = utils.random(values.color.sq.min, values.color.sq.max),
-				values.color.sw = utils.random(values.color.sw.min, values.color.sw.max),
-				values.color.tr = utils.random(values.color.tr.min, values.color.tr.max)
-			);
+		if(values.croak !== false){
+			if(values.croak === 1)
+				this.setColor(1, 0, 0);
+			else
+				this.setColor(0, 0.2, 0.8);
+		}
 	}
 
 	this.song = [];
 	var chirpTotalLength = this.chirpDelay + this.chirpLength*this.chirpCut;
-	var songLength = utils.random(2000, 3000) - this.chirpLength;
-	var songChirps = Math.round(songLength/chirpTotalLength);
+	var songLength = utils.random(2000, 2500) - this.chirpLength;
+	var songChirps = utils.randomInt(2, 6);
+	// var songChirps = Math.round(songLength/chirpTotalLength);
 	var repeating = Math.random();
 	// console.log(repeating);
 	for (var i = 0; i < songChirps; i++) {
@@ -302,7 +420,9 @@ Bird.prototype.randomize = function (values) {
 	return values;
 }
 
-Bird.prototype.singSong = function () {
+Bird.prototype.singSong = function (song) {
+	if(song !== undefined)
+		this.song = song;
 	// console.log(this.song);
 	this.songPointer = 0;
 	this.singingSong = true;
@@ -322,9 +442,21 @@ Bird.prototype.compare = function (bird) {
 	console.log("deltaCut", deltaCut);
 
 	return {
-		circle: deltaDelay+deltaLength < 150,
+		circle: deltaDelay+deltaLength < this.deltaMaxDelay+this.deltaMaxLength,
 		croak: this.squareGain.gain.value == bird.squareGain.gain.value,
-		square: deltaRange < 0.15 && deltaRamp < 0.2,
-		cut: deltaCut < 0.15
+		square: deltaRange < this.deltaMaxRange && deltaRamp < this.deltaMaxRamp,
+		cut: deltaCut < this.deltaMaxCut
 	};
+}
+
+Bird.prototype.copySettings = function (bird) {
+	this.chirpDelay = bird.chirpDelay;
+	this.chirpLength = bird.chirpLength;
+	this.chirpFreqRange = bird.chirpFreqRange;
+	this.chirpFreqRamp = bird.chirpFreqRamp;
+	this.chirpCut = bird.chirpCut;
+
+	this.squareGain.gain.value = bird.squareGain.gain.value;
+	this.sawtoothGain.gain.value = bird.sawtoothGain.gain.value;
+	this.triangleGain.gain.value = bird.triangleGain.gain.value;
 }

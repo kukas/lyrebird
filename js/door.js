@@ -1,6 +1,8 @@
-var Door = function (game) {
+var Door = function (game, x, y) {
     Phaser.Group.call(this, game, game.world, 'Door', false, false);
     // Phaser.Graphics.call(this, game, x, y);
+
+    this.position.set(x, y);
 
     this._width = game.width;
     this._height = game.height/2;
@@ -33,6 +35,12 @@ var Door = function (game) {
     this.knock.addMarker('3', 1.04, 0.2);
     this.knock.addMarker('4', 1.67, 0.2);
 
+    // sound
+    this.openSfx = game.add.audio('door1');
+    this.openSfx.allowMultiple = true;
+    this.openSfx.addMarker('1', 0, 3.5);
+    this.openSfx.addMarker('2', 3.71, 1.7);
+
     this.last = 0;
     this.onKnock = new Phaser.Signal();
     this.dontKnock = false;
@@ -58,7 +66,6 @@ Door.prototype.mouseUp = function () {
     // this.circle.scale.set(0.5, 0.5);
     var last = Date.now();
     if(last - this.last < 500){
-        console.log(last-this.last);
         this.knocked = true;
     }
     else {

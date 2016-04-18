@@ -26,7 +26,7 @@ var SliderCircle = function (game, group, x, y, _width, _height) {
     this.fg2.beginFill(0xffffff, 1);
     this.fg2.drawCircle(0, 0, size*0.8);
     this.fg2.endFill();
-    this.add(this.fg2);
+    // this.add(this.fg2);
 
     this.fg = new Phaser.Graphics(game, 0, 0);
     this.fgBaseScale = new Phaser.Point(0.8, 0.8);
@@ -106,8 +106,6 @@ SliderCircle.prototype.updateXYPos = function () {
 
         this.value.set(xx, yy);
 
-        console.log(this.value.x, xx);
-        
         this.onChange.dispatch(this, this.value);
     }
 

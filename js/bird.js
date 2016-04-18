@@ -4,11 +4,6 @@ function Bird(ctx, destination) {
 	var dryReverb = ctx.createGain();
 	dryReverb.gain.value = 0.5;
 	dryReverb.connect(destination);
-
-	this.bins = new Float32Array(32);
-	this.analyser = ctx.createAnalyser();
-	this.analyser.fftSize = 32;
-	this.analyser.connect(dryReverb);
 	
 	var wetReverb = ctx.createGain();
 	wetReverb.gain.value = 0.2;
@@ -18,15 +13,18 @@ function Bird(ctx, destination) {
 	this.convolver.normalize = true;
 	this.convolver.connect(wetReverb);
 	var impulse = game.add.audio("impulse_response");
+
 	game.sound.decode("impulse_response", impulse);
 	impulse.onDecoded.add(function () {
 		var buffer = game.cache.getSoundData("impulse_response");
-		this.convolver.buffer = buffer;
+		if(buffer){
+			this.convolver.buffer = buffer;
+		}
 	}, this);
 
 	this.chirperGain = ctx.createGain();
-	this.chirperGain.gain.value = 0;
-	this.chirperGain.connect(this.analyser);
+	this.chirperGain.gain.setValueAtTime(0, ctx.currentTime);
+	this.chirperGain.connect(dryReverb);
 	this.chirperGain.connect(this.convolver);
 
 	this.chirpDelay = 200;
@@ -37,31 +35,26 @@ function Bird(ctx, destination) {
 	this.chirpCutCount = 1;
 
 	this.attack = 40;
+	this.release = 40;
 
 	this.oscGain = ctx.createGain();
-	this.oscGain.gain.value = 0;
+	this.oscGain.gain.value = 0.3;
 	this.oscGain.connect(this.chirperGain);
 
-
 	this.squareGain = ctx.createGain();
-	this.squareGain.gain.value = 1;
-	this.squareGain.connect(this.oscGain);
-	// this.square = ctx.createOscillator();
+	this.squareGain.connect(this.chirperGain);
 	this.square = ctx.createBufferSource();
 	this.square.loop = true;
 	this.square.start();
-	// this.square.type = 'square';
 	
 	this.square.connect(this.squareGain);
 	var raven = game.add.audio("raven");
-	game.sound.decode("raven", impulse);
 	raven.onDecoded.add(function () {
 		var buffer = game.cache.getSoundData("raven");
 		this.square.buffer = buffer;
 	}, this);
 
 	this.triangleGain = ctx.createGain();
-	this.triangleGain.gain.value = 0;
 	this.triangleGain.connect(this.oscGain);
 	this.triangle = ctx.createOscillator();
 	this.triangle.type = 'triangle';
@@ -69,21 +62,11 @@ function Bird(ctx, destination) {
 	this.triangle.connect(this.triangleGain);
 
 	this.sawtoothGain = ctx.createGain();
-	this.sawtoothGain.gain.value = 0;
 	this.sawtoothGain.connect(this.oscGain);
 	this.sawtooth = ctx.createOscillator();
 	this.sawtooth.type = 'sawtooth';
 	this.sawtooth.start();
 	this.sawtooth.connect(this.sawtoothGain);
-
-	this.saw = ctx.createOscillator();
-	this.sawGain = ctx.createGain();
-	this.sawGain.gain.value = 0.2;
-	this.saw.type = 'triangle';
-	this.saw.frequency.value = 440;
-	// this.saw.start();
-	this.saw.connect(this.sawGain);
-	this.sawGain.connect(this.oscGain);
 
 	this.timeout = null;
 	this.singTime = 0;
@@ -108,7 +91,7 @@ function Bird(ctx, destination) {
 	this.deltaMaxLength = 75;
 	this.deltaMaxRange = 0.15
 	this.deltaMaxRamp = 0.2;
-	this.deltaMaxCut = 0.15;
+	this.deltaMaxCut = 0.2;
 }
 
 Bird.prototype.startChirping = function () {
@@ -151,12 +134,12 @@ Bird.prototype.startChirping = function () {
 	var t = this.ctx.currentTime;
 	var attack = t+this.attack/1000;
 	var release = t+this.chirpLength/1000 * chirpCut;
-	var releaseDur = 0.02;
+	var releaseDur = this.release/1000;
 	this.chirperGain.gain.cancelScheduledValues(t);
 	this.chirperGain.gain.setValueAtTime(0, t);
-
 	if(!notToday){
 		this.chirperGain.gain.linearRampToValueAtTime(1, attack);
+		// this.chirperGain.gain.setTargetAtTime(0, release, releaseDur);
 		this.chirperGain.gain.setTargetAtTime(0, Math.max(attack + releaseDur, release), releaseDur);
 	}
 	else {
@@ -180,8 +163,6 @@ Bird.prototype.startChirping = function () {
 		}
 		else { // oscillator
 			osc[prop].cancelScheduledValues(t);
-			osc[prop].setValueAtTime(this.frequency, t);
-			// osc.frequency.linearRampToValueAtTime(this.frequency + this.chirpFreqRamp, t+this.chirpLength/1000);
 			var size = 512;
 			var values = new Float32Array(size);
 			var range = this.chirpFreqRange * chirpCut;
@@ -223,7 +204,6 @@ Bird.prototype.eachOsc = function (callback) {
 Bird.prototype.sing = function () {
 	this.onStartSinging.dispatch();
 	this.chirpCount = 0;
-	this.oscGain.gain.value = 1;
 	this.singTime = Date.now();
 	this.userSingingSongEventDispatched = true;
 	if(!this.chirping){
@@ -232,7 +212,6 @@ Bird.prototype.sing = function () {
 }
 
 Bird.prototype.stopSing = function () {
-	// this.oscGain.gain.value = 0;
 	this.stopSingTime = Date.now();
 	this.userSingingSongEventDispatched = false;
 	if(this.chirping)
@@ -258,10 +237,10 @@ Bird.prototype.setFreq = function (freq) {
 }
 
 Bird.prototype.setChirpLength = function (value) {
-	this.chirpLength = ((0.05 + value)*0.7) * 1000;
+	this.chirpLength = this.attack*2 + value * 300;
 }
 Bird.prototype.setChirpDelay = function (value) {
-	this.chirpDelay = (0.2 + value) * 400;
+	this.chirpDelay = 160 + value * 300;
 }
 Bird.prototype.setChirpFreqRamp = function (value) {
 	this.chirpFreqRamp = value - 0.2;
@@ -406,7 +385,7 @@ Bird.prototype.randomize = function (values) {
 	this.song = [];
 	var chirpTotalLength = this.chirpDelay + this.chirpLength*this.chirpCut;
 	var songLength = utils.random(2000, 2500) - this.chirpLength;
-	var songChirps = utils.randomInt(2, 6);
+	var songChirps = utils.randomInt(3, 5);
 	// var songChirps = Math.round(songLength/chirpTotalLength);
 	var repeating = Math.random();
 	// console.log(repeating);

@@ -7,7 +7,7 @@ PhaserGame.prototype = {
         game.load.audio('raven', 'sounds/toucan.wav');
         game.load.audio('move', 'sounds/move.wav');
         game.load.audio('knock', 'sounds/knock2.wav');
-        game.load.audio('impulse_response', 'sounds/koli_summer_site1_1way_mono.wav');
+        game.load.audio('impulse_response', 'sounds/koli_summer.wav');
         game.load.audio('door1', 'sounds/door2.wav');
     },
     create: function () {
@@ -161,7 +161,11 @@ PhaserGame.prototype = {
 
         this.birdGui = new BirdGui(this.game, 0, this.game.height, this.bird);
 
-        this.storyPointer = 7;
+        this.storyPointer = 0;
+        var storage = localStorage.getItem('gameProgress');
+        if(storage && false)
+        	this.storyPointer = storage;
+
         this.story = [
             {
                 values: {
@@ -432,8 +436,6 @@ PhaserGame.prototype = {
                     // toggle
                     croak: 1
                 },
-                // song: [0.4, 0.4, 0.4, 0.4],
-                song: [0.4],
                 visibility: {
                     sliderCircle: true,
                     slider2D: false,
@@ -526,7 +528,8 @@ PhaserGame.prototype = {
             this.birdGui.slider2D.visible = story.visibility.slider2D;
             this.birdGui.sliderChirpCut.visible = story.visibility.sliderChirpCut;
             this.birdGui.sliderSq.visible = story.visibility.sliderSq;
-            
+
+            localStorage.setItem('gameProgress', this.storyPointer);
             this.storyPointer++;
         }
         else {

@@ -40,10 +40,14 @@ var Door = function (game, x, y) {
     this.openSfx.allowMultiple = true;
     this.openSfx.addMarker('1', 0, 3.5);
     this.openSfx.addMarker('2', 3.71, 1.7);
+    this.openSfx.addMarker('3', 3.98, 1);
 
     this.last = 0;
     this.onKnock = new Phaser.Signal();
     this.dontKnock = false;
+
+    this.beat = false;
+    this.doba = 0;
 }
 
 Door.prototype = Object.create(Phaser.Group.prototype);
@@ -51,7 +55,7 @@ Door.prototype.constructor = Door;
 
 Door.prototype.update = function () {
     this.__proto__.__proto__.update.call(this);
-    if(Date.now() - this.last > 500 && this.knocked){
+    if(Date.now() - this.last > 500 && this.knocked && !this.beat){
         this.knocked = false;
         this.onKnock.dispatch();
     }
@@ -71,6 +75,7 @@ Door.prototype.mouseUp = function () {
     else {
         this.knocked = false;
     }
+
     this.last = last;
 }
 
@@ -82,8 +87,24 @@ Door.prototype.mouseDown = function () {
     this.circle.scale.set(0.8, 0.8);
 
     this.knock.play("" + utils.randomInt(1,4));
-}
 
-// Door.prototype.update = function() {
-//     this.__proto__.__proto__.update.call(this);
-// };
+    if(this.beat){
+        var last = Date.now();
+
+        if(this.beatLast){
+            this.beatDelay = last - this.beatLast;
+            var _this = this;
+            if(this.beatInterval)
+                clearInterval(this.beatInterval);
+            
+            this.beatInterval = setInterval(function () {
+                _this.doba = (_this.doba+1)%4;
+                if(_this.doba == 3)
+                    _this.openSfx.play("3");
+                _this.knock.play("" + (_this.doba+1));
+            }, this.beatDelay);
+        }
+
+        this.beatLast = last;
+    }
+}

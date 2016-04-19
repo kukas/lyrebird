@@ -3,7 +3,11 @@ var PhaserGame = function () {
 
 PhaserGame.prototype = {
     preload: function () {
+        game.load.image('beatButton', 'img/beat.png');
+        game.load.image('resetButton', 'img/reset.png');
         game.load.image('tick', 'img/tick.png');
+        game.load.image('congratulations', 'img/congratulations.png');
+        game.load.image('recommend', 'img/recommend2.png');
         game.load.audio('raven', 'sounds/toucan.wav');
         game.load.audio('move', 'sounds/move.wav');
         game.load.audio('knock', 'sounds/knock2.wav');
@@ -27,6 +31,7 @@ PhaserGame.prototype = {
         var gui = game.add.group(game.world, "gui");
 
         this.door = new Door(this.game, 0, this.game.height/4);
+        this.door.visible = false;
         gui.add(this.door);
 
         if(!game.sound.usingWebAudio){
@@ -163,7 +168,7 @@ PhaserGame.prototype = {
 
         this.storyPointer = 0;
         var storage = localStorage.getItem('gameProgress');
-        if(storage && false)
+        if(storage)
         	this.storyPointer = storage;
 
         this.story = [
@@ -248,9 +253,9 @@ PhaserGame.prototype = {
                     // slider x
                     chirpCut: {min: 1, max: 1},
                     // kruh x
-                    chirpLength: {min: 0.5, max: 0.55},
+                    chirpLength: {min: 0.35, max: 0.35},
                     // kruh y
-                    chirpDelay: {min: 0.6, max: 0.65},
+                    chirpDelay: {min: 1, max: 1},
                     // toggle
                     croak: 0
                 },
@@ -489,8 +494,122 @@ PhaserGame.prototype = {
                     sliderSq: true,
                 },
             },
+            { // 10
+                values: {
+                	croak: 0
+                },
+                randomize: {
+                    // ctverec
+                    chirpFreqRamp: true,
+                    chirpFreqRange: true,
+                    // slider
+                    chirpCut: false,
+                    // kruh
+                    chirpLength: false,
+                    chirpDelay: false,
+                    // toggle
+                    croak: 0
+                },
+                visibility: {
+                    sliderCircle: true,
+                    slider2D: true,
+                    sliderChirpCut: true,
+                    sliderSq: true,
+                },
+            },
+            { // 11
+                values: {
+                	croak: 0
+                },
+                randomize: {
+                    // ctverec
+                    chirpFreqRamp: true,
+                    chirpFreqRange: true,
+                    // slider
+                    chirpCut: true,
+                    // kruh
+                    chirpLength: false,
+                    chirpDelay: false,
+                    // toggle
+                    croak: 1
+                },
+                visibility: {
+                    sliderCircle: true,
+                    slider2D: true,
+                    sliderChirpCut: true,
+                    sliderSq: true,
+                },
+            },
+            { // 12
+                values: {
+                	croak: 1
+                },
+                randomize: {
+                    // ctverec
+                    chirpFreqRamp: true,
+                    chirpFreqRange: true,
+                    // slider
+                    chirpCut: true,
+                    // kruh
+                    chirpLength: false,
+                    chirpDelay: false,
+                    // toggle
+                    croak: 1
+                },
+                visibility: {
+                    sliderCircle: true,
+                    slider2D: true,
+                    sliderChirpCut: true,
+                    sliderSq: true,
+                },
+            },
         ];
-        this.newBird();
+
+        if(this.storyPointer == 0){
+	        var recommend = game.add.sprite(game.width/2, game.height/2, "recommend");
+	        recommend.alpha = 0;
+	        recommend.anchor.set(0.5, 0.5);
+	        var hide = game.add.tween(recommend).to( { alpha:0 }, 2000, Phaser.Easing.Linear.None);
+	        hide.onComplete.add(function () {
+	    		game.time.events.add(1500, function () {
+	    			this.door.visible = true;
+	    		}, this);
+	    	}, this)
+	        game.add.tween(recommend).to( { alpha:1 }, 2000, Phaser.Easing.Linear.None, true).chain(hide);
+        }
+        else {
+        	this.door.visible = true;
+        }
+
+        this.congratulations = game.add.sprite(game.width/2, 0, "congratulations");
+        this.congratulations.alpha = 0;
+        this.congratulations.anchor.set(0.5, 0);
+
+        this.beatButton = game.add.sprite(50, game.height-10, "beatButton");
+        this.beatButton.anchor.set(0, 1);
+        this.beatButton.inputEnabled = true;
+        this.beatButton.input.useHandCursor = true;
+	    this.beatButton.events.onInputUp.add(function () {
+	    	this.door.beat = !this.door.beat;
+	    	// this.door.knock.play()
+	    	// if(this.beat.isPlaying)
+	    	// 	this.beat.stop();
+	    	// else
+	    	// 	this.beat.play();
+	    }, this);
+        this.resetButton = game.add.sprite(game.width-10, game.height-10, "resetButton");
+        this.resetButton.anchor.set(1, 1);
+        this.resetButton.inputEnabled = true;
+        this.resetButton.input.useHandCursor = true;
+	    this.resetButton.events.onInputUp.add(function () {
+	    	localStorage.setItem('gameProgress', 0);
+	    	window.location.reload(false); 
+	    }, this);
+
+	    this.beatButton.visible = false;
+		this.resetButton.visible = false;
+
+		this.newBird();
     },
 
     newBird: function () {
@@ -533,6 +652,14 @@ PhaserGame.prototype = {
             this.storyPointer++;
         }
         else {
+        	localStorage.setItem('gameProgress', ++this.storyPointer);
+        	var show = game.add.tween(this.congratulations).to( { alpha:1 }, 3000, Phaser.Easing.Linear.None);
+        	var hide = game.add.tween(this.congratulations).to( { alpha:0 }, 3000, Phaser.Easing.Linear.None);
+        	show.chain(hide);
+        	show.start();
+        	this.beatButton.visible = true;
+			this.resetButton.visible = true;
+        	
             // sandbox
             var settingsOther = this.otherBird.randomize();
             var settings = this.bird.randomize();
